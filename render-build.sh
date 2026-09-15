@@ -69,3 +69,8 @@ cp "$APK" "$ROOT/out/PureHTMLBrowser-debug.apk"
 sha256sum "$ROOT/out/PureHTMLBrowser-debug.apk" > "$ROOT/out/SHA256.txt"
 cat "$ROOT/out/SHA256.txt"
 ls -lh "$ROOT/out/PureHTMLBrowser-debug.apk"
+
+printf '\n== Minimize deploy payload ==\n'
+cd "$ROOT"
+rm -rf "$TOOLS" "$ROOT/PureHTMLBrowser"
+find "$ROOT/out" -maxdepth 1 -type f -printf '%f %s bytes\n'
