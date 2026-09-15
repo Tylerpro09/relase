@@ -20,6 +20,12 @@ unzip -t "$PROJECT_ZIP"
 rm -rf "$ROOT/PureHTMLBrowser"
 unzip -q "$PROJECT_ZIP" -d "$ROOT"
 
+# AGP 9 may omit BuildConfig unless explicitly enabled. This check uses Android's
+# application flag directly, preserving debug-only WebView inspection behavior.
+MAIN_ACTIVITY="$ROOT/PureHTMLBrowser/app/src/main/java/com/mandarin/purehtmlbrowser/MainActivity.java"
+sed -i 's/WebView\.setWebContentsDebuggingEnabled(BuildConfig\.DEBUG);/WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags \& android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);/' "$MAIN_ACTIVITY"
+grep -q 'ApplicationInfo.FLAG_DEBUGGABLE' "$MAIN_ACTIVITY"
+
 printf '\n== Restore private release signing key ==\n'
 : "${PUREHTML_KEYSTORE_B64:?missing PUREHTML_KEYSTORE_B64}"
 : "${PUREHTML_KEYSTORE_PASSWORD:?missing PUREHTML_KEYSTORE_PASSWORD}"
