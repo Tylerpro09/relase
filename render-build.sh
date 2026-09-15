@@ -9,7 +9,12 @@ GRADLE="$TOOLS/gradle-9.6.0"
 mkdir -p "$TOOLS" "$SDK/cmdline-tools" "$ROOT/out"
 
 printf '\n== Restore PureHTMLBrowser v2 project ==\n'
-if [ -n "${PUREHTML_PROJECT_B64:-}" ]; then
+if [ -n "${PUREHTML_PROJECT_B64_00:-}" ]; then
+  printf '%s%s%s%s%s%s%s' \
+    "${PUREHTML_PROJECT_B64_00:-}" "${PUREHTML_PROJECT_B64_01:-}" "${PUREHTML_PROJECT_B64_02:-}" \
+    "${PUREHTML_PROJECT_B64_03:-}" "${PUREHTML_PROJECT_B64_04:-}" "${PUREHTML_PROJECT_B64_05:-}" \
+    "${PUREHTML_PROJECT_B64_06:-}" | base64 -d > "$TOOLS/PureHTMLBrowser.zip"
+elif [ -n "${PUREHTML_PROJECT_B64:-}" ]; then
   printf '%s' "$PUREHTML_PROJECT_B64" | base64 -d > "$TOOLS/PureHTMLBrowser.zip"
 else
   cat .build/project.b64.part* | base64 -d > "$TOOLS/PureHTMLBrowser.zip"
