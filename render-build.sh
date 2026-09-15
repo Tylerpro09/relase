@@ -6,13 +6,13 @@ TOOLS="$ROOT/.android-build"
 SDK="$TOOLS/android-sdk"
 JDK="$TOOLS/jdk17"
 GRADLE="$TOOLS/gradle-9.6.0"
-PROJECT_ZIP="$TOOLS/PureBrowser-2.0-source.zip"
-EXPECTED_PROJECT_SHA="e2509e07378c8ccb5c1688f41209c4e4f80dbc25a06101f367812d9fcedd85a0"
+PROJECT_ZIP="$TOOLS/PureBrowser-2.1-source.zip"
+EXPECTED_PROJECT_SHA="40536ad8ffa29431ea7df364bc9a6926d184d7c7d395449a7988acb24de5bf00"
 mkdir -p "$TOOLS" "$SDK/cmdline-tools" "$ROOT/out"
 rm -f "$ROOT/out"/*
 
-printf '\n== Restore Pure Browser 2.0 project ==\n'
-cat .build/v2.bin.part* > "$PROJECT_ZIP"
+printf '\n== Restore Pure Browser 2.1 project ==\n'
+base64 -d .build/v21-source.b64 > "$PROJECT_ZIP"
 ACTUAL_PROJECT_SHA="$(sha256sum "$PROJECT_ZIP" | awk '{print $1}')"
 echo "Project SHA256: $ACTUAL_PROJECT_SHA"
 [ "$ACTUAL_PROJECT_SHA" = "$EXPECTED_PROJECT_SHA" ] || exit 2
@@ -21,8 +21,8 @@ rm -rf "$ROOT/PureHTMLBrowser"
 unzip -q "$PROJECT_ZIP" -d "$ROOT"
 
 MAIN_ACTIVITY="$ROOT/PureHTMLBrowser/app/src/main/java/com/mandarin/purehtmlbrowser/MainActivity.java"
-sed -i 's/WebView\.setWebContentsDebuggingEnabled(BuildConfig\.DEBUG);/WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags \& android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);/' "$MAIN_ACTIVITY"
 grep -q 'ApplicationInfo.FLAG_DEBUGGABLE' "$MAIN_ACTIVITY"
+grep -q "versionName '2.1.0'" "$ROOT/PureHTMLBrowser/app/build.gradle"
 
 printf '\n== Restore private release signing key ==\n'
 : "${PUREHTML_KEYSTORE_B64:?missing PUREHTML_KEYSTORE_B64}"
@@ -67,11 +67,11 @@ export PATH="$SDK/cmdline-tools/latest/bin:$SDK/platform-tools:$PATH"
 yes | sdkmanager --licenses >/dev/null || true
 sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 
-printf '\n== Build signed release ==\n'
+printf '\n== Build signed Pure Browser 2.1 release ==\n'
 cd "$ROOT/PureHTMLBrowser"
 gradle --no-daemon --stacktrace :app:assembleRelease
 APK="$ROOT/PureHTMLBrowser/app/build/outputs/apk/release/app-release.apk"
-OUT="$ROOT/out/PureBrowser-2.0-release.apk"
+OUT="$ROOT/out/PureBrowser-2.1-release.apk"
 test -s "$APK"
 cp "$APK" "$OUT"
 
