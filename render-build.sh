@@ -21,13 +21,16 @@ rm -rf "$ROOT/PureHTMLBrowser"
 unzip -q "$PROJECT_ZIP" -d "$ROOT"
 
 printf '\n== Restore private release signing key ==\n'
-: "${PURE_RELEASE_KEY_B64:?missing PURE_RELEASE_KEY_B64}"
-: "${PURE_RELEASE_STORE_PASSWORD:?missing PURE_RELEASE_STORE_PASSWORD}"
-: "${PURE_RELEASE_KEY_PASSWORD:?missing PURE_RELEASE_KEY_PASSWORD}"
-: "${PURE_RELEASE_KEY_ALIAS:?missing PURE_RELEASE_KEY_ALIAS}"
-printf '%s' "$PURE_RELEASE_KEY_B64" | base64 -d > "$TOOLS/purebrowser-release.jks"
+: "${PUREHTML_KEYSTORE_B64:?missing PUREHTML_KEYSTORE_B64}"
+: "${PUREHTML_KEYSTORE_PASSWORD:?missing PUREHTML_KEYSTORE_PASSWORD}"
+: "${PUREHTML_KEY_PASSWORD:?missing PUREHTML_KEY_PASSWORD}"
+: "${PUREHTML_KEY_ALIAS:?missing PUREHTML_KEY_ALIAS}"
+printf '%s' "$PUREHTML_KEYSTORE_B64" | base64 -d > "$TOOLS/purebrowser-release.jks"
 chmod 600 "$TOOLS/purebrowser-release.jks"
 export PURE_RELEASE_KEYSTORE="$TOOLS/purebrowser-release.jks"
+export PURE_RELEASE_STORE_PASSWORD="$PUREHTML_KEYSTORE_PASSWORD"
+export PURE_RELEASE_KEY_PASSWORD="$PUREHTML_KEY_PASSWORD"
+export PURE_RELEASE_KEY_ALIAS="$PUREHTML_KEY_ALIAS"
 
 printf '\n== Download JDK 17 ==\n'
 if [ ! -x "$JDK/bin/java" ]; then
