@@ -6,31 +6,28 @@ TOOLS="$ROOT/.android-build"
 SDK="$TOOLS/android-sdk"
 JDK="$TOOLS/jdk17"
 GRADLE="$TOOLS/gradle-9.6.0"
+PROJECT_ZIP="$TOOLS/PureBrowser-2.0-source.zip"
+EXPECTED_PROJECT_SHA="e2509e07378c8ccb5c1688f41209c4e4f80dbc25a06101f367812d9fcedd85a0"
 mkdir -p "$TOOLS" "$SDK/cmdline-tools" "$ROOT/out"
+rm -f "$ROOT/out"/*
 
-printf '\n== Restore PureHTMLBrowser v2 project ==\n'
-if [ -n "${PUREHTML_PROJECT_B64_00:-}" ]; then
-  printf '%s%s%s%s%s%s%s' \
-    "${PUREHTML_PROJECT_B64_00:-}" "${PUREHTML_PROJECT_B64_01:-}" "${PUREHTML_PROJECT_B64_02:-}" \
-    "${PUREHTML_PROJECT_B64_03:-}" "${PUREHTML_PROJECT_B64_04:-}" "${PUREHTML_PROJECT_B64_05:-}" \
-    "${PUREHTML_PROJECT_B64_06:-}" | base64 -d > "$TOOLS/PureHTMLBrowser.zip"
-elif [ -n "${PUREHTML_PROJECT_B64:-}" ]; then
-  printf '%s' "$PUREHTML_PROJECT_B64" | base64 -d > "$TOOLS/PureHTMLBrowser.zip"
-else
-  cat .build/project.b64.part* | base64 -d > "$TOOLS/PureHTMLBrowser.zip"
-fi
-unzip -t "$TOOLS/PureHTMLBrowser.zip"
+printf '\n== Restore Pure Browser 2.0 project ==\n'
+cat .build/v2.bin.part* > "$PROJECT_ZIP"
+ACTUAL_PROJECT_SHA="$(sha256sum "$PROJECT_ZIP" | awk '{print $1}')"
+echo "Project SHA256: $ACTUAL_PROJECT_SHA"
+[ "$ACTUAL_PROJECT_SHA" = "$EXPECTED_PROJECT_SHA" ] || { echo "Project payload checksum mismatch"; exit 2; }
+unzip -t "$PROJECT_ZIP"
 rm -rf "$ROOT/PureHTMLBrowser"
-unzip -q "$TOOLS/PureHTMLBrowser.zip" -d "$ROOT"
+unzip -q "$PROJECT_ZIP" -d "$ROOT"
 
-printf '\n== Restore release signing key ==\n'
-: "${PUREHTML_KEYSTORE_B64:?missing PUREHTML_KEYSTORE_B64}"
-: "${PUREHTML_KEYSTORE_PASSWORD:?missing PUREHTML_KEYSTORE_PASSWORD}"
-: "${PUREHTML_KEY_ALIAS:?missing PUREHTML_KEY_ALIAS}"
-: "${PUREHTML_KEY_PASSWORD:?missing PUREHTML_KEY_PASSWORD}"
-printf '%s' "$PUREHTML_KEYSTORE_B64" | base64 -d > "$TOOLS/purehtml-release.jks"
-chmod 600 "$TOOLS/purehtml-release.jks"
-export PUREHTML_KEYSTORE_PATH="$TOOLS/purehtml-release.jks"
+printf '\n== Restore private release signing key ==\n'
+: "${PURE_RELEASE_KEY_B64:?missing PURE_RELEASE_KEY_B64}"
+: "${PURE_RELEASE_STORE_PASSWORD:?missing PURE_RELEASE_STORE_PASSWORD}"
+: "${PURE_RELEASE_KEY_PASSWORD:?missing PURE_RELEASE_KEY_PASSWORD}"
+: "${PURE_RELEASE_KEY_ALIAS:?missing PURE_RELEASE_KEY_ALIAS}"
+printf '%s' "$PURE_RELEASE_KEY_B64" | base64 -d > "$TOOLS/purebrowser-release.jks"
+chmod 600 "$TOOLS/purebrowser-release.jks"
+export PURE_RELEASE_KEYSTORE="$TOOLS/purebrowser-release.jks"
 
 printf '\n== Download JDK 17 ==\n'
 if [ ! -x "$JDK/bin/java" ]; then
@@ -70,19 +67,22 @@ printf '\n== Install Android SDK 36 ==\n'
 yes | sdkmanager --licenses >/dev/null || true
 sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 
-printf '\n== Build signed release APK ==\n'
+printf '\n== Build signed, minified release APK ==\n'
 cd "$ROOT/PureHTMLBrowser"
 gradle --no-daemon --stacktrace :app:assembleRelease
 
 APK="$ROOT/PureHTMLBrowser/app/build/outputs/apk/release/app-release.apk"
+OUT="$ROOT/out/PureBrowser-2.0-release.apk"
 test -s "$APK"
-cp "$APK" "$ROOT/out/PureHTMLBrowser-v2.0.0-release.apk"
-"$SDK/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$ROOT/out/PureHTMLBrowser-v2.0.0-release.apk"
-sha256sum "$ROOT/out/PureHTMLBrowser-v2.0.0-release.apk" > "$ROOT/out/SHA256.txt"
+cp "$APK" "$OUT"
+
+printf '\n== Verify APK signature ==\n'
+"$SDK/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$OUT"
+sha256sum "$OUT" > "$ROOT/out/SHA256.txt"
 cat "$ROOT/out/SHA256.txt"
-ls -lh "$ROOT/out/PureHTMLBrowser-v2.0.0-release.apk"
+ls -lh "$OUT"
 
 printf '\n== Minimize deploy payload ==\n'
 cd "$ROOT"
-rm -rf "$TOOLS" "$ROOT/PureHTMLBrowser"
+rm -rf "$TOOLS" "$ROOT/PureHTMLBrowser" "$HOME/.gradle"
 find "$ROOT/out" -maxdepth 1 -type f -printf '%f %s bytes\n'
