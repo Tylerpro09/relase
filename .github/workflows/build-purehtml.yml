@@ -1,0 +1,64 @@
+name: Build PureHTMLBrowser APK
+
+on:
+  push:
+    branches:
+      - build/purehtmlbrowser
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore project ZIP
+        shell: bash
+        run: |
+          cat .build/project.b64.part* > project.b64
+          base64 -d project.b64 > PureHTMLBrowser.zip
+          unzip -t PureHTMLBrowser.zip
+          unzip -q PureHTMLBrowser.zip
+          test -f PureHTMLBrowser/settings.gradle
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Build debug APK
+        working-directory: PureHTMLBrowser
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Collect APK
+        shell: bash
+        run: |
+          mkdir -p out
+          cp PureHTMLBrowser/app/build/outputs/apk/debug/app-debug.apk out/PureHTMLBrowser-debug.apk
+          sha256sum out/PureHTMLBrowser-debug.apk | tee out/SHA256.txt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureHTMLBrowser-APK
+          path: out/*
+          if-no-files-found: error
+          retention-days: 7
