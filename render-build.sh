@@ -12,10 +12,10 @@ mkdir -p "$TOOLS" "$SDK/cmdline-tools" "$ROOT/out"
 rm -f "$ROOT/out"/*
 
 printf '\n== Restore Pure Browser 2.1 project ==\n'
-base64 -d .build/v21-source.b64 > "$PROJECT_ZIP"
+cat .build/v21.b64.part00 .build/v21.b64.part01 .build/v21.b64.part02 .build/v21.b64.part03 .build/v21.b64.part04 .build/v21.b64.part05 .build/v21.b64.part06 .build/v21.b64.part07 | tr -d '[:space:]' | base64 -d > "$PROJECT_ZIP"
 ACTUAL_PROJECT_SHA="$(sha256sum "$PROJECT_ZIP" | awk '{print $1}')"
 echo "Project SHA256: $ACTUAL_PROJECT_SHA"
-[ "$ACTUAL_PROJECT_SHA" = "$EXPECTED_PROJECT_SHA" ] || exit 2
+[ "$ACTUAL_PROJECT_SHA" = "$EXPECTED_PROJECT_SHA" ] || { echo "Project payload checksum mismatch"; exit 2; }
 unzip -t "$PROJECT_ZIP"
 rm -rf "$ROOT/PureHTMLBrowser"
 unzip -q "$PROJECT_ZIP" -d "$ROOT"
