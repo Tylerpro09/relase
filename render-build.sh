@@ -24,6 +24,8 @@ printf '\n== Apply Pure Browser 2.1 native-permissions patch ==\n'
 base64 -d .build/v21.patch.gz.b64 | gzip -dc > "$TOOLS/v21.patch"
 patch -p1 --batch --forward < "$TOOLS/v21.patch"
 MAIN_ACTIVITY="$ROOT/PureHTMLBrowser/app/src/main/java/com/mandarin/purehtmlbrowser/MainActivity.java"
+# The verified 2.0 payload predates the AGP 9 BuildConfig compatibility fix.
+sed -i 's/WebView\.setWebContentsDebuggingEnabled(BuildConfig\.DEBUG);/WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags \& android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);/' "$MAIN_ACTIVITY"
 grep -q 'ApplicationInfo.FLAG_DEBUGGABLE' "$MAIN_ACTIVITY"
 grep -q 'PureAndroidBridge' "$MAIN_ACTIVITY"
 grep -q 'ACTIVITY_RECOGNITION' "$MAIN_ACTIVITY"
