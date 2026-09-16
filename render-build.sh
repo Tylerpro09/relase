@@ -9,6 +9,7 @@ GRADLE="$TOOLS/gradle-9.6.0"
 PROJECT_ZIP="$TOOLS/PureBrowser-2.0-base.zip"
 EXPECTED_PROJECT_SHA="e2509e07378c8ccb5c1688f41209c4e4f80dbc25a06101f367812d9fcedd85a0"
 EXPECTED_V22_B64_SHA="bc6c302a200e966a47f19cdae18414b9c46115482f4247820b5c2d6049bb3cf2"
+EXPECTED_V23_B64_SHA="c37c1af1bcb897a2a6b791f5c9b4324f148494ad802347da22bb90b349b1393a"
 mkdir -p "$TOOLS" "$SDK/cmdline-tools" "$ROOT/out"
 rm -f "$ROOT/out"/*
 
@@ -45,6 +46,17 @@ grep -q 'bridgeVersion' "$MAIN_ACTIVITY"
 grep -q 'bodySensors' "$MAIN_ACTIVITY"
 grep -q 'showNotification' "$MAIN_ACTIVITY"
 grep -q 'secure_origin_required' "$MAIN_ACTIVITY"
+
+printf '\n== Apply Pure Browser 2.3 native-vibration patch ==\n'
+ACTUAL_V23_B64_SHA="$(sha256sum .build/v23.patch.gz.b64 | awk '{print $1}')"
+echo "2.3 patch payload SHA256: $ACTUAL_V23_B64_SHA"
+[ "$ACTUAL_V23_B64_SHA" = "$EXPECTED_V23_B64_SHA" ] || { echo "2.3 patch checksum mismatch"; exit 4; }
+base64 -d .build/v23.patch.gz.b64 | gzip -dc > "$TOOLS/v23.patch"
+patch -p3 --batch --forward < "$TOOLS/v23.patch"
+grep -q "versionName '2.3.0'" "$ROOT/PureHTMLBrowser/app/build.gradle"
+grep -q 'performSiteVibration' "$MAIN_ACTIVITY"
+grep -q 'VibrationEffect.createOneShot' "$MAIN_ACTIVITY"
+grep -q "Object.defineProperty(navigator,'vibrate'" "$MAIN_ACTIVITY"
 
 printf '\n== Restore private release signing key ==\n'
 : "${PUREHTML_KEYSTORE_B64:?missing PUREHTML_KEYSTORE_B64}"
@@ -93,11 +105,11 @@ export PATH="$SDK/cmdline-tools/latest/bin:$SDK/platform-tools:$PATH"
 yes | sdkmanager --licenses >/dev/null || true
 sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 
-printf '\n== Build signed Pure Browser 2.2 release ==\n'
+printf '\n== Build signed Pure Browser 2.3 release ==\n'
 cd "$ROOT/PureHTMLBrowser"
 gradle --no-daemon --stacktrace :app:assembleRelease
 APK="$ROOT/PureHTMLBrowser/app/build/outputs/apk/release/app-release.apk"
-OUT="$ROOT/out/PureBrowser-2.2-release.apk"
+OUT="$ROOT/out/PureBrowser-2.3-release.apk"
 test -s "$APK"
 cp "$APK" "$OUT"
 
